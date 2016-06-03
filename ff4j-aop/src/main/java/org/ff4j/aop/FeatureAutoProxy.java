@@ -12,8 +12,7 @@ package org.ff4j.aop;
  */
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import org.springframework.aop.TargetSource;
 import org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator;
@@ -44,9 +43,10 @@ public class FeatureAutoProxy extends AbstractAutoProxyCreator {
     @Override
     protected Object[] getAdvicesAndAdvisorsForBean(Class<?> beanClass, String beanName, TargetSource targetSource) {
         // Scan interface only once.
-        if (!beanClass.isInterface() && beanClass.getInterfaces() != null) {
+        Class<?>[] interfaces = null;
+        if (!beanClass.isInterface() && (interfaces = getBeanInterfaces(beanClass)) != null) {
             // Get Interface
-            for (Class<?> currentInterface : beanClass.getInterfaces()) {
+            for (Class<?> currentInterface : interfaces) {
                 Object[] r = addAnnotedInterface(currentInterface);
                 if (r != null) {
                     return r;
@@ -54,6 +54,23 @@ public class FeatureAutoProxy extends AbstractAutoProxyCreator {
             }
         }
         return DO_NOT_PROXY;
+    }
+
+    private Class<?>[] getBeanInterfaces(Class<?> beanClass) {
+        final Set<Class<?>> interfaces = new HashSet<Class<?>>();
+        Class<?> currentClass = beanClass;
+
+        while (currentClass != null) {
+            Class<?>[] currentInterfaces = currentClass.getInterfaces();
+            for (Class<?> currentInterface : currentInterfaces) {
+                interfaces.add(currentInterface);
+            }
+            currentClass = currentClass.getSuperclass();
+        }
+
+        Class<?>[] result = new Class<?>[interfaces.size()];
+        interfaces.toArray(result);
+        return result;
     }
 
     private Object[] addAnnotedInterface(Class<?> currentInterface) {
